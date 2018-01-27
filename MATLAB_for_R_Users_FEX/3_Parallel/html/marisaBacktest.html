@@ -1,0 +1,240 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Backtest Moving Average RSI Combo Strategy</title><meta name="generator" content="MATLAB 8.0"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2012-11-07"><meta name="DC.source" content="marisaBacktest.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Backtest Moving Average RSI Combo Strategy</h1><!--introduction--><p>This script demonstrates testing a simple technical indicator strategy and backtesting to optimize its parameters</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Data Import</a></li><li><a href="#2">Sub-sample the series if necessary</a></li><li><a href="#3">Test MA+RSI Strategy</a></li><li><a href="#4">Run Backtest</a></li><li><a href="#5">Visualize Backtest Results</a></li><li><a href="#6">Rerun strategy for optimal parameters</a></li><li><a href="#7">Analyze Strategy Returns</a></li></ul></div><h2>Data Import<a name="1"></a></h2><p>Import data from database using auto-generated file. If the database is not installed, the data can instead be loaded from the MAT-file provided</p><pre class="codeinput"><span class="keyword">try</span>
+    data = getBundData;
+<span class="keyword">catch</span>
+    load <span class="string">bund1min</span>
+<span class="keyword">end</span>
+</pre><h2>Sub-sample the series if necessary<a name="2"></a></h2><pre class="codeinput">step = 20;
+Close = data.Close(1:step:end);
+</pre><h2>Test MA+RSI Strategy<a name="3"></a></h2><pre class="codeinput">N = 200;
+M = 50;
+[sh pnl pos] = marisa(Close, N, M, 0.01);
+
+posPNLPlot(Close, pos, pnl);
+
+fprintf(<span class="string">'Sharpe''s Ratio: %0.2f\n\n'</span>, sh * sqrt(60*11/step));
+</pre><pre class="codeoutput">Sharpe's Ratio: 1.56
+
+</pre><img vspace="5" hspace="5" src="marisaBacktest_01.png" alt=""> <h2>Run Backtest<a name="4"></a></h2><p>Select a range of values for the EMA and RSI parameters for the strategy Run a parameter sweep and compute Sharpe's ratios</p><pre class="codeinput">N = 10:10:300;
+M = 10:5:200;
+cost = .01;
+
+SH = zeros(length(N),length(M));
+SHrow = zeros(1,length(M));
+<span class="comment">% loop over N,M</span>
+tic;
+<span class="keyword">for</span> i = 1:length(N)
+    SHrow = zeros(1,length(M));
+    <span class="keyword">for</span> j = 1:length(M)
+        SHrow(j) = marisa(Close, N(i), M(j), cost);
+    <span class="keyword">end</span>
+    SH(i,:) = SHrow;
+<span class="keyword">end</span>
+toc
+SH = SH * sqrt(60*11/step);
+</pre><pre class="codeoutput">Elapsed time is 4.804719 seconds.
+</pre><h2>Visualize Backtest Results<a name="5"></a></h2><p>The Sharpe's ratios can be used to compare the performance of the strategy for different parameters. A 3D surface plot shows the relationship between the EMA, RSI parameters and the resultant Sharpe's ratio</p><pre class="codeinput">clf
+surfc(M,N,SH); shading <span class="string">interp</span>; lighting <span class="string">phong</span>; light
+ylabel(<span class="string">'EMA Parameter (N)'</span>);
+xlabel(<span class="string">'RSI Parameter (M)'</span>);
+zlabel(<span class="string">'Sharpe''s Ratio'</span>);
+
+<span class="comment">% Select Optimal Parameters</span>
+[I,J] = find(SH == max(max(SH)));
+fprintf(<span class="string">'\nOptimal Sharpe''s ratio of %0.2f was found for N = %d, M = %d\n'</span>, SH(I,J), N(I), M(J));
+
+hold <span class="string">on</span>;
+plot3(M(J), N(I), SH(I,J), <span class="string">'c*'</span>, <span class="string">'MarkerSize'</span>, 8)
+hold <span class="string">off</span>;
+</pre><pre class="codeoutput">
+Optimal Sharpe's ratio of 1.92 was found for N = 290, M = 55
+</pre><img vspace="5" hspace="5" src="marisaBacktest_02.png" alt=""> <h2>Rerun strategy for optimal parameters<a name="6"></a></h2><pre class="codeinput">[sh, pnl, pos] = marisa(Close, N(I), M(J), cost);
+sh = sqrt(60*11/step) * sh;
+
+posPNLPlot(Close, pos, pnl);
+title([<span class="string">'Cumulative PNL. Sharpe = '</span>,num2str(sh),<span class="string">', N='</span>,num2str(N(I)),<span class="string">', M='</span>,num2str(M(J))])
+</pre><img vspace="5" hspace="5" src="marisaBacktest_03.png" alt=""> <h2>Analyze Strategy Returns<a name="7"></a></h2><p>The Sharpe's ratio may not be sufficient information on the strategy. Here we extract individual positions and report on their statistics</p><pre class="codeinput">cpnl = cumsum(pnl);
+[maxdd, period] = maxdrawdown(cpnl, <span class="string">'arithmetic'</span>);
+<span class="comment">% Extract PNL for individual positions</span>
+ind = find(diff(pos)) + 1;
+posPNL = diff([0;cpnl(ind)]);
+
+<span class="comment">% Display Histogram of Position Returns</span>
+histPNLPlot(cpnl, posPNL, period);
+
+fprintf(<span class="string">'\nTotal number of positions = %d\n'</span>, length(posPNL));
+fprintf(<span class="string">'Average position duration = %0.2f periods\n'</span>, mean(diff(ind)));
+fprintf(<span class="string">'Average profit per position = $%0.2f\n'</span>, mean(posPNL));
+fprintf(<span class="string">'Maximum Drawdown = $%0.2f\n\n'</span>, maxdd);
+</pre><pre class="codeoutput">
+Total number of positions = 880
+Average position duration = 24.14 periods
+Average profit per position = $0.02
+Maximum Drawdown = $2.50
+
+</pre><img vspace="5" hspace="5" src="marisaBacktest_04.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2012b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Backtest Moving Average RSI Combo Strategy
+% This script demonstrates testing a simple technical indicator strategy
+% and backtesting to optimize its parameters
+
+%% Data Import
+% Import data from database using auto-generated file. If the database is
+% not installed, the data can instead be loaded from the MAT-file provided
+
+try
+    data = getBundData;
+catch
+    load bund1min
+end
+
+%% Sub-sample the series if necessary
+step = 20;
+Close = data.Close(1:step:end);
+
+%% Test MA+RSI Strategy
+N = 200;
+M = 50;
+[sh pnl pos] = marisa(Close, N, M, 0.01);
+
+posPNLPlot(Close, pos, pnl);
+
+fprintf('Sharpe''s Ratio: %0.2f\n\n', sh * sqrt(60*11/step));
+
+%% Run Backtest
+% Select a range of values for the EMA and RSI parameters for the strategy
+% Run a parameter sweep and compute Sharpe's ratios
+N = 10:10:300;
+M = 10:5:200;
+cost = .01;
+
+SH = zeros(length(N),length(M));
+SHrow = zeros(1,length(M));
+% loop over N,M
+tic;
+for i = 1:length(N)
+    SHrow = zeros(1,length(M));
+    for j = 1:length(M)
+        SHrow(j) = marisa(Close, N(i), M(j), cost);
+    end
+    SH(i,:) = SHrow;
+end
+toc
+SH = SH * sqrt(60*11/step);
+
+%% Visualize Backtest Results
+% The Sharpe's ratios can be used to compare the performance of the
+% strategy for different parameters. A 3D surface plot shows the
+% relationship between the EMA, RSI parameters and the resultant Sharpe's
+% ratio
+
+clf
+surfc(M,N,SH); shading interp; lighting phong; light
+ylabel('EMA Parameter (N)');
+xlabel('RSI Parameter (M)');
+zlabel('Sharpe''s Ratio');
+
+% Select Optimal Parameters
+[I,J] = find(SH == max(max(SH)));
+fprintf('\nOptimal Sharpe''s ratio of %0.2f was found for N = %d, M = %d\n', SH(I,J), N(I), M(J));
+
+hold on;
+plot3(M(J), N(I), SH(I,J), 'c*', 'MarkerSize', 8)
+hold off;
+
+%% Rerun strategy for optimal parameters
+
+[sh, pnl, pos] = marisa(Close, N(I), M(J), cost);
+sh = sqrt(60*11/step) * sh;
+
+posPNLPlot(Close, pos, pnl);
+title(['Cumulative PNL. Sharpe = ',num2str(sh),', N=',num2str(N(I)),', M=',num2str(M(J))])
+
+%% Analyze Strategy Returns
+% The Sharpe's ratio may not be sufficient information on the strategy.
+% Here we extract individual positions and report on their statistics
+
+cpnl = cumsum(pnl);
+[maxdd, period] = maxdrawdown(cpnl, 'arithmetic');
+% Extract PNL for individual positions
+ind = find(diff(pos)) + 1;
+posPNL = diff([0;cpnl(ind)]);
+
+% Display Histogram of Position Returns
+histPNLPlot(cpnl, posPNL, period);
+
+fprintf('\nTotal number of positions = %d\n', length(posPNL));
+fprintf('Average position duration = %0.2f periods\n', mean(diff(ind)));
+fprintf('Average profit per position = $%0.2f\n', mean(posPNL));
+fprintf('Maximum Drawdown = $%0.2f\n\n', maxdd);
+
+
+
+##### SOURCE END #####
+--></body></html>

@@ -1,0 +1,459 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Optimizing Market Risk using Copula Simulation</title><meta name="generator" content="MATLAB 8.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2013-06-27"><meta name="DC.source" content="copulaVaR.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Optimizing Market Risk using Copula Simulation</h1><!--introduction--><p>This example demonstrates computing Value-at-Risk and Conditional Value-at-Risk (expected shortfall) for a portfolio using multivariate copula simulation with fat-tailed marginal distributions. The simulations are then used to compute an efficient frontier of optimal risk-return portfolios.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Import the Supporting Historical Dataset</a></li><li><a href="#2">Visualize Normalized Prices</a></li><li><a href="#3">Returns &amp; Marginal Distributions</a></li><li><a href="#6">Copula Calibration</a></li><li><a href="#9">Copula Simulation</a></li><li><a href="#10">Compute Single-Period Simulated VaR</a></li><li><a href="#11">Portfolio Optimization</a></li><li><a href="#12">Compute portfolio with given level of return</a></li></ul></div><h2>Import the Supporting Historical Dataset<a name="1"></a></h2><p>Use the Datafeed Toolbox's APIs to import market data for the different asset classes that we will model in this exercise</p><div><ul><li>SPY: Large Cap US (S&amp;P 500)</li><li>EEM: Emerging Markets Equity</li><li>TLT: 20+ Year Treas Bond (iShares Barclays)</li><li>COY: US High-Yield Bond</li><li>GSP: Commodities broad (iPath S&amp;P GSCI Total Return Index)</li><li>RWR: Real estate (REIT Index)</li></ul></div><pre class="codeinput">names = {<span class="string">'SPY'</span>, <span class="string">'EEM'</span>, <span class="string">'TLT'</span>, <span class="string">'COY'</span>, <span class="string">'GSP'</span>, <span class="string">'RWR'</span>};
+startPeriod = <span class="string">'2009-10-01'</span>;
+endPeriod = <span class="string">'2013-06-24'</span>;
+
+[dates, prices, ds] = importFeedPrices(names, startPeriod, endPeriod);
+nAssets = length(names);
+</pre><h2>Visualize Normalized Prices<a name="2"></a></h2><p>The plots show the relative price movements of each index . The initial level of each index has been normalized to unity to facilitate the comparison of relative performance over the historical record.</p><pre class="codeinput">normPrices = bsxfun(@rdivide, prices, prices(1,:));
+
+plot(dates, normPrices), datetick(<span class="string">'x'</span>), xlabel(<span class="string">'Date'</span>), ylabel(<span class="string">'Index Value'</span>);
+title (<span class="string">'Normalized Daily Index Closings'</span>);
+legend(names, <span class="string">'Location'</span>, <span class="string">'NorthWest'</span>)
+</pre><img vspace="5" hspace="5" src="copulaVaR_01.png" alt=""> <h2>Returns &amp; Marginal Distributions<a name="3"></a></h2><p>To prepare for copula modeling, characterize individually the distribution of returns of each index. Although the distribution of each return series may be characterized parametrically, it is useful to fit a semi-parametric model using a piecewise distribution with generalized Pareto tails. This uses Extreme Value Theory to better characterize the behavior in each tail.</p><pre class="codeinput">returns = price2ret(prices);                       <span class="comment">% convert prices to returns</span>
+
+[~,ax] = plotmatrix(returns);
+title(<span class="string">'Pairwise Correlation of Historical Returns'</span>);
+<span class="keyword">for</span> i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="copulaVaR_02.png" alt=""> <p>The following code segment creates one object of type <b>paretotails</b> for each index return series. These Pareto tail objects encapsulate the estimates of the parametric Pareto lower tail, the non-parametric kernel-smoothed interior, and the parametric Pareto upper tail to construct a composite semi-parametric CDF for each index.</p><pre class="codeinput">tailFraction = 0.1;               <span class="comment">% decimal fraction allocated to each tail</span>
+marginal     = cell(nAssets,1);  <span class="comment">% cell array of Pareto tail objects</span>
+
+<span class="keyword">for</span> i = 1:nAssets
+    marginal{i} = paretotails(returns(:,i), tailFraction, 1 - tailFraction, <span class="string">'kernel'</span>);
+
+    fprintf(<span class="string">'Marginal distribution for %s:\n'</span>, names{i});
+    disp(marginal{i});
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Marginal distribution for SPY:
+
+Piecewise distribution with 3 segments
+      -Inf &lt; x &lt; -0.0125822    (0 &lt; p &lt; 0.1): lower tail, GPD(0.0380262,0.0084794)
+   -0.0125822 &lt; x &lt; 0.01286  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.01286 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(0.0511828,0.00671413)
+
+Marginal distribution for EEM:
+
+Piecewise distribution with 3 segments
+        -Inf &lt; x &lt; -0.0186259    (0 &lt; p &lt; 0.1): lower tail, GPD(-0.00289033,0.0126097)
+   -0.0186259 &lt; x &lt; 0.0185703  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.0185703 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(0.0326916,0.00981892)
+
+Marginal distribution for TLT:
+
+Piecewise distribution with 3 segments
+        -Inf &lt; x &lt; -0.0132814    (0 &lt; p &lt; 0.1): lower tail, GPD(0.137056,0.00414294)
+   -0.0132814 &lt; x &lt; 0.0128738  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.0128738 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(0.027114,0.00583448)
+
+Marginal distribution for COY:
+
+Piecewise distribution with 3 segments
+       -Inf &lt; x &lt; -0.0105025    (0 &lt; p &lt; 0.1): lower tail, GPD(0.47441,0.00485515)
+   -0.0105025 &lt; x &lt; 0.011195  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.011195 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(0.177151,0.00500233)
+
+Marginal distribution for GSP:
+
+Piecewise distribution with 3 segments
+       -Inf &lt; x &lt; -0.0161561    (0 &lt; p &lt; 0.1): lower tail, GPD(-0.0382412,0.0103328)
+   -0.0161561 &lt; x &lt; 0.016506  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.016506 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(-0.134845,0.00778651)
+
+Marginal distribution for RWR:
+
+Piecewise distribution with 3 segments
+        -Inf &lt; x &lt; -0.0172097    (0 &lt; p &lt; 0.1): lower tail, GPD(-0.00540337,0.0114245)
+   -0.0172097 &lt; x &lt; 0.0168041  (0.1 &lt; p &lt; 0.9): interpolated kernel smooth cdf
+          0.0168041 &lt; x &lt; Inf    (0.9 &lt; p &lt; 1): upper tail, GPD(0.0302092,0.0117143)
+
+</pre><p>The resulting piecewise distribution object allows interpolation within the interior of the CDF and extrapolation (function evaluation) in each tail. Extrapolation allows estimation of quantiles outside the historical record, which is invaluable for risk management applications. Here we compare the fit produced by the paretoTail distribution to that of a normal distribution.</p><pre class="codeinput">index = 1;
+dist = marginal{index};
+
+clf
+probplot(returns(:,index));
+h = probplot(gca, @dist.cdf);
+
+set(h,<span class="string">'Color'</span>,<span class="string">'r'</span>);
+legend(<span class="string">'Normal Distribution'</span>, <span class="string">'Returns'</span>, <span class="string">'ParetoTail Distribution'</span>, <span class="string">'location'</span>, <span class="string">'best'</span>);
+title ([<span class="string">'Semi-Parametric/Piecewise Probability Plot: '</span> names{index}])
+</pre><img vspace="5" hspace="5" src="copulaVaR_03.png" alt=""> <h2>Copula Calibration<a name="6"></a></h2><p>We use Statistics Toolbox function to calibrate and simulate a t copula to the data.</p><p>Using the daily index returns, estimate the parameters of the Gaussian and t copulas using the function <b>copulafit</b>. Since a t copula becomes a Gaussian copula as the scalar degrees of freedom parameter (DoF) becomes infinitely large, the two copulas are really of the same family, and therefore share a linear correlation matrix as a fundamental parameter.</p><p>Although calibration of the linear correlation matrix of a Gaussian copula is straightforward, the calibration of a t copula is not. For this reason, the Statistics Toolbox software offers two techniques to calibrate a t copula: The following code segment first transforms the daily centered returns to uniform variates by the piecewise, semi-parametric CDFs derived above. It then fits the Gaussian and t copulas to the transformed data:</p><pre class="codeinput">U = zeros(size(returns)); <span class="comment">% Uniform variates obtained by evaluating CDF at returns</span>
+
+<span class="keyword">for</span> i = 1:nAssets
+    U(:,i) = marginal{i}.cdf(returns(:,i));    <span class="comment">% transform each margin to uniform</span>
+<span class="keyword">end</span>
+
+clf
+[~,ax] = plotmatrix(U); title(<span class="string">'Transformed returns prior to fitting a Copula'</span>);
+<span class="keyword">for</span> i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="copulaVaR_04.png" alt=""> <img vspace="5" hspace="5" src="copulaVaR_05.png" alt=""> <p>Estimate parameters of a t copula. Note the relatively low degrees of freedom parameter obtained from the t copula calibration, indicating a significant departure from a Gaussian situation.</p><pre class="codeinput">[rhoT, DoF] = copulafit(<span class="string">'t'</span>, U, <span class="string">'Method'</span>, <span class="string">'ApproximateML'</span>)
+</pre><pre class="codeoutput">
+rhoT =
+
+            1      0.88229     -0.59693      0.40875      0.58027      0.81485
+      0.88229            1     -0.52371      0.38906      0.63175      0.73608
+     -0.59693     -0.52371            1     -0.28404     -0.37285     -0.43114
+      0.40875      0.38906     -0.28404            1       0.2953      0.36207
+      0.58027      0.63175     -0.37285       0.2953            1      0.47097
+      0.81485      0.73608     -0.43114      0.36207      0.47097            1
+
+
+DoF =
+
+       9.5014
+
+</pre><p>The estimated correlation matrix is similar but not identical to the linear correlation matrix</p><pre class="codeinput">corrcoef(returns)  <span class="comment">% linear correlation matrix of daily returns</span>
+</pre><pre class="codeoutput">
+ans =
+
+            1      0.89745     -0.61065       0.4677      0.59174      0.83717
+      0.89745            1     -0.54167      0.45612      0.63322      0.76712
+     -0.61065     -0.54167            1     -0.30377      -0.3918     -0.44429
+       0.4677      0.45612     -0.30377            1      0.33312      0.43525
+      0.59174      0.63322      -0.3918      0.33312            1      0.49161
+      0.83717      0.76712     -0.44429      0.43525      0.49161            1
+
+</pre><h2>Copula Simulation<a name="9"></a></h2><p>Now that the copula parameters have been estimated, simulate jointly-dependent uniform variates using the function <b>copularnd</b>.</p><p>Then, by extrapolating the Pareto tails and interpolating the smoothed interior, transform the uniform variates derived from <b>copularnd</b> to daily centered returns via the inverse CDF of each index. These simulated centered returns are consistent with those obtained from the historical dataset. The returns are assumed to be independent in time, but at any point in time possess the dependence and rank correlation induced by the given copula.</p><pre class="codeinput">nPoints = 10000;                          <span class="comment">% # of simulated observations</span>
+
+rng <span class="string">default</span>
+
+R = zeros(nPoints, nAssets);             <span class="comment">% pre-allocate simulated returns array</span>
+U = copularnd(<span class="string">'t'</span>, rhoT, DoF, nPoints);   <span class="comment">% simulate U(0,1) from t copula</span>
+
+<span class="keyword">for</span> j = 1:nAssets
+    R(:,j) = marginal{j}.icdf(U(:,j));
+<span class="keyword">end</span>
+
+[~,ax] = plotmatrix(R); title(<span class="string">'Pairwise correlation of Simulated returns'</span>);
+<span class="keyword">for</span> i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="copulaVaR_06.png" alt=""> <h2>Compute Single-Period Simulated VaR<a name="10"></a></h2><p>The multivariate simulations from the copula model can be used to compute the Value-at-Risk and Expected Shortfall (CVaR) of a sample portfolio.</p><pre class="codeinput"><span class="comment">% Sample portfolio component weights</span>
+wts = [.1 .2 .3 .2 .1 .1]';
+
+<span class="comment">% Generate portfolio returns from simulated component returns</span>
+portReturns = R * wts;
+
+<span class="comment">% Compute VaR</span>
+var = -prctile(portReturns, 1);
+cvar = -mean(portReturns(portReturns &lt; -var));
+
+<span class="comment">% Compare to normal distribution</span>
+R2 = mvnrnd(mean(returns), cov(returns), 10000);
+normReturns = R2 * wts;
+var2 = -prctile(normReturns, 1);
+cvar2 = -mean(normReturns(normReturns &lt; -var2));
+
+disp(<span class="string">'Copula Value-at-Risk ----------------------'</span>);
+fprintf(<span class="string">'99%%  VaR: %0.2f%%\n99%% CVaR: %0.2f%%\n\n'</span>, var * 100, cvar * 100);
+disp(<span class="string">'Multivariate Normal Value-at-Risk ---------'</span>);
+fprintf(<span class="string">'99%%  VaR: %0.2f%%\n99%% CVaR: %0.2f%%\n\n'</span>, var2 * 100, cvar2 * 100);
+</pre><pre class="codeoutput">Copula Value-at-Risk ----------------------
+99%  VaR: 1.78%
+99% CVaR: 2.58%
+
+Multivariate Normal Value-at-Risk ---------
+99%  VaR: 1.49%
+99% CVaR: 1.71%
+
+</pre><h2>Portfolio Optimization<a name="11"></a></h2><p>Previously, we used the simulated returns to compute the risk of a sample portfolio. Instead, we could find an optimal portfolio (weights) that give us a minimum risk for a certain level of return. We can do this using the PortfolioCVaR framework.</p><pre class="codeinput">p = PortfolioCVaR(<span class="string">'ProbabilityLevel'</span>, .99, <span class="string">'AssetNames'</span>, names);
+p = p.setScenarios(R);
+p = p.setDefaultConstraints();
+wts = p.estimateFrontier(20);
+portRisk = p.estimatePortRisk(wts);
+portRet = p.estimatePortReturn(wts);
+
+clf
+visualizeFrontier(p, portRisk, portRet);
+</pre><img vspace="5" hspace="5" src="copulaVaR_07.png" alt=""> <h2>Compute portfolio with given level of return<a name="12"></a></h2><pre class="codeinput">tic;
+wt = p.estimateFrontierByReturn(.05/100);
+toc;
+pRisk = p.estimatePortRisk(wt);
+pRet = p.estimatePortReturn(wt);
+hold <span class="string">on</span>; h = plot(pRisk, pRet, <span class="string">'or'</span>, <span class="string">'MarkerFaceColor'</span>, <span class="string">'r'</span>); legend(h,<span class="string">'Desired portfolio'</span>);
+</pre><pre class="codeoutput">Elapsed time is 0.635017 seconds.
+</pre><img vspace="5" hspace="5" src="copulaVaR_08.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Optimizing Market Risk using Copula Simulation
+% This example demonstrates computing Value-at-Risk and
+% Conditional Value-at-Risk (expected shortfall) for a portfolio using
+% multivariate copula simulation with fat-tailed marginal distributions.
+% The simulations are then used to compute an efficient frontier of optimal
+% risk-return portfolios. 
+
+%% Import the Supporting Historical Dataset 
+% Use the Datafeed Toolbox's APIs to import market data for the different 
+% asset classes that we will model in this exercise
+%
+% * SPY: Large Cap US (S&P 500)
+% * EEM: Emerging Markets Equity
+% * TLT: 20+ Year Treas Bond (iShares Barclays)
+% * COY: US High-Yield Bond
+% * GSP: Commodities broad (iPath S&P GSCI Total Return Index)
+% * RWR: Real estate (REIT Index)
+
+names = {'SPY', 'EEM', 'TLT', 'COY', 'GSP', 'RWR'};
+startPeriod = '2009-10-01';
+endPeriod = '2013-06-24';
+
+[dates, prices, ds] = importFeedPrices(names, startPeriod, endPeriod);
+nAssets = length(names);
+
+%% Visualize Normalized Prices
+% The plots show the relative price movements of each index . The initial
+% level of each index has been normalized to unity to facilitate the
+% comparison of relative performance over the historical record.
+normPrices = bsxfun(@rdivide, prices, prices(1,:));
+
+plot(dates, normPrices), datetick('x'), xlabel('Date'), ylabel('Index Value');
+title ('Normalized Daily Index Closings'); 
+legend(names, 'Location', 'NorthWest')
+
+%% Returns & Marginal Distributions
+%
+% To prepare for copula modeling, characterize individually the distribution of
+% returns of each index. Although the distribution of each return series may be 
+% characterized parametrically, it is useful to fit a semi-parametric model using 
+% a piecewise distribution with generalized Pareto tails. This uses Extreme Value 
+% Theory to better characterize the behavior in each tail. 
+
+returns = price2ret(prices);                       % convert prices to returns
+
+[~,ax] = plotmatrix(returns); 
+title('Pairwise Correlation of Historical Returns');
+for i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+end
+
+%%
+% The following code segment creates one object of type *paretotails* for each 
+% index return series. These Pareto tail objects encapsulate the
+% estimates of the parametric Pareto lower tail, the non-parametric kernel-smoothed 
+% interior, and the parametric Pareto upper tail to construct a composite 
+% semi-parametric CDF for each index. 
+
+tailFraction = 0.1;               % decimal fraction allocated to each tail
+marginal     = cell(nAssets,1);  % cell array of Pareto tail objects
+
+for i = 1:nAssets
+    marginal{i} = paretotails(returns(:,i), tailFraction, 1 - tailFraction, 'kernel');
+    
+    fprintf('Marginal distribution for %s:\n', names{i});
+    disp(marginal{i});
+end
+
+%%
+% The resulting piecewise distribution object allows interpolation within the 
+% interior of the CDF and extrapolation (function evaluation) in each tail. 
+% Extrapolation allows estimation of quantiles outside the historical record, 
+% which is invaluable for risk management applications. Here we compare the
+% fit produced by the paretoTail distribution to that of a normal
+% distribution.
+
+index = 1;
+dist = marginal{index};
+
+clf
+probplot(returns(:,index));
+h = probplot(gca, @dist.cdf);
+
+set(h,'Color','r');
+legend('Normal Distribution', 'Returns', 'ParetoTail Distribution', 'location', 'best');
+title (['Semi-Parametric/Piecewise Probability Plot: ' names{index}])
+
+%% Copula Calibration
+%
+% We use Statistics Toolbox function to calibrate and simulate a t copula
+% to the data. 
+%
+% Using the daily index returns, estimate the parameters of the Gaussian and t 
+% copulas using the function *copulafit*. Since a t copula becomes a Gaussian 
+% copula as the scalar degrees of freedom parameter (DoF) becomes infinitely large, 
+% the two copulas are really of the same family, and therefore share a linear 
+% correlation matrix as a fundamental parameter.
+%
+% Although calibration of the linear correlation matrix of a Gaussian copula is 
+% straightforward, the calibration of a t copula is not. For this reason, the 
+% Statistics Toolbox software offers two techniques to calibrate a t copula:
+% The following code segment first transforms the daily centered returns to uniform 
+% variates by the piecewise, semi-parametric CDFs derived above. It then fits the 
+% Gaussian and t copulas to the transformed data:
+
+U = zeros(size(returns)); % Uniform variates obtained by evaluating CDF at returns
+
+for i = 1:nAssets
+    U(:,i) = marginal{i}.cdf(returns(:,i));    % transform each margin to uniform
+end
+
+clf
+[~,ax] = plotmatrix(U); title('Transformed returns prior to fitting a Copula');
+for i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+end
+%% 
+% Estimate parameters of a t copula. Note the relatively low degrees of freedom parameter obtained from the t copula 
+% calibration, indicating a significant departure from a Gaussian
+% situation.
+[rhoT, DoF] = copulafit('t', U, 'Method', 'ApproximateML')
+
+%%
+% The estimated correlation matrix is similar but not identical to the
+% linear correlation matrix
+
+corrcoef(returns)  % linear correlation matrix of daily returns
+
+%% Copula Simulation
+%
+% Now that the copula parameters have been estimated, simulate jointly-dependent 
+% uniform variates using the function *copularnd*.
+%
+% Then, by extrapolating the Pareto tails and interpolating the smoothed interior, 
+% transform the uniform variates derived from *copularnd* to daily centered 
+% returns via the inverse CDF of each index. These simulated centered returns are 
+% consistent with those obtained from the historical dataset. The returns are 
+% assumed to be independent in time, but at any point in time possess the 
+% dependence and rank correlation induced by the given copula.
+
+nPoints = 10000;                          % # of simulated observations
+
+rng default
+
+R = zeros(nPoints, nAssets);             % pre-allocate simulated returns array
+U = copularnd('t', rhoT, DoF, nPoints);   % simulate U(0,1) from t copula
+
+for j = 1:nAssets
+    R(:,j) = marginal{j}.icdf(U(:,j));
+end
+
+[~,ax] = plotmatrix(R); title('Pairwise correlation of Simulated returns');
+for i = 1:nAssets
+    ylabel(ax(i,1),names{i});
+    xlabel(ax(end,i),names{i});
+end
+
+%% Compute Single-Period Simulated VaR
+% The multivariate simulations from the copula model can be used to
+% compute the Value-at-Risk and Expected Shortfall (CVaR) of a sample
+% portfolio.
+
+% Sample portfolio component weights
+wts = [.1 .2 .3 .2 .1 .1]';
+
+% Generate portfolio returns from simulated component returns
+portReturns = R * wts;
+
+% Compute VaR
+var = -prctile(portReturns, 1);
+cvar = -mean(portReturns(portReturns < -var));
+
+% Compare to normal distribution
+R2 = mvnrnd(mean(returns), cov(returns), 10000);
+normReturns = R2 * wts;
+var2 = -prctile(normReturns, 1);
+cvar2 = -mean(normReturns(normReturns < -var2));
+
+disp('Copula Value-at-Risk REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH');
+fprintf('99%%  VaR: %0.2f%%\n99%% CVaR: %0.2f%%\n\n', var * 100, cvar * 100);
+disp('Multivariate Normal Value-at-Risk REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-');
+fprintf('99%%  VaR: %0.2f%%\n99%% CVaR: %0.2f%%\n\n', var2 * 100, cvar2 * 100);
+
+%% Portfolio Optimization
+% Previously, we used the simulated returns to compute the risk of a sample
+% portfolio. Instead, we could find an optimal portfolio (weights) that
+% give us a minimum risk for a certain level of return. We can do this
+% using the PortfolioCVaR framework.
+
+p = PortfolioCVaR('ProbabilityLevel', .99, 'AssetNames', names);
+p = p.setScenarios(R);
+p = p.setDefaultConstraints();
+wts = p.estimateFrontier(20);
+portRisk = p.estimatePortRisk(wts);
+portRet = p.estimatePortReturn(wts);
+
+clf
+visualizeFrontier(p, portRisk, portRet);
+
+%% Compute portfolio with given level of return
+tic;
+wt = p.estimateFrontierByReturn(.05/100);
+toc;
+pRisk = p.estimatePortRisk(wt);
+pRet = p.estimatePortReturn(wt);
+hold on; h = plot(pRisk, pRet, 'or', 'MarkerFaceColor', 'r'); legend(h,'Desired portfolio');
+
+##### SOURCE END #####
+--></body></html>
